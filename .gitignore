@@ -1,0 +1,16 @@
+.vs
+\bin
+\obj
+*.pdb
+*.dll
+*.exe.config
+*.exe
+*.FileListAbsolute.txt
+*.csproj.CopyComplete
+*.AssemblyAttributes.cs
+*.suo
+*.user
+*.lref
+*.g.cs
+*.g.i.cs
+*.baml
