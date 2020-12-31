@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using Hammer.Attributes;
 
 namespace Hammer
 {
@@ -45,6 +42,11 @@ namespace Hammer
                     if (parameterMapping == null || parameterMapping.ErrorDiagnostics.Any())
                     {
                         // error!
+                        foreach(var diagnostic in parameterMapping.ErrorDiagnostics)
+                        {
+                            Console.Out.WriteLine("Error!");
+                            Console.Out.WriteLine($"\t{diagnostic}");
+                        }
                     }
                     else
                     {
@@ -53,13 +55,6 @@ namespace Hammer
                         var invokeObj = Activator.CreateInstance(functionType);
                         cmdInfo.Metadata.Invoke(invokeObj, parameterMapping.Arguments.ToArray());
                     }
-
-                    /*
-                    if (ValidateCommand(cmdInfo, callArgs))
-                    {
-                        CallCommand(cmdInfo, callArgs);
-                    }
-                    */
                 }
             }
             catch (Exception e)
@@ -87,20 +82,36 @@ namespace Hammer
                 var callArg = callArgs.FindCommandArgument(paramName);
 
                 object value = null;
-                if (callArg != null)
+                if (callArg != null && callArg.HasValue)
                 {
-                    value = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
+                    if (param.Metadata.ParameterType.IsEnum)
+                    {
+                        value = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                    }
+                    else
+                    {
+                        // regular argument w/ a value
+                        value = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
+                    }
                 }
-                else if (param.GetIsOptional())
+                else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
+                {
+                    // bool arg w/o a value, so existence vs. not
+                    value = true;
+                }
+                if (param.GetIsOptional())
                 {
                     // add in the default value
                     value = param.GetParameterDefaultValue();
                 }
                 else
                 {
+                    // Can't map this arg
                     result.ErrorDiagnostics.Add($"Failed to map parameter \"{paramName}\"");
                     value = null;
                 }
+
+
 
                 result.Arguments.Add(value);
             }
@@ -108,7 +119,21 @@ namespace Hammer
             return result;
         }
 
-        
+        private static object ParseEnumeratedValue(Type parameterType, string strValue)
+        {
+            object result = null;
+            if (parameterType.IsEnum)
+            {
+                try
+                {
+                    result = Enum.Parse(parameterType, strValue, true);
+                }
+                finally
+                { }
+            }
+            
+            return result;
+        }
 
         private static bool ValidateCommand(CommandInfo cmdInfo, CommandCall cmdArgs)
         {

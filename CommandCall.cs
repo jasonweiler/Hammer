@@ -8,6 +8,7 @@ namespace Hammer
     {
         public string Name { get; set; }
         public string Value { get; set; }
+        public bool HasValue { get; set; }
     }
 
     public class CommandCall

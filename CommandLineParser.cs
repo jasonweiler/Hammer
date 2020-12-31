@@ -63,6 +63,7 @@ namespace Hammer
             if (argPair.Length == 2)
             {
                 result.Value = argPair[1].Trim();
+                result.HasValue = true;
             }
 
             return result;
