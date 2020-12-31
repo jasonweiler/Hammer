@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Hammer.Attributes
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public class HammerCommandGroupAttribute : Attribute
+    public class CommandGroupAttribute : Attribute
     {
         public string Description { get; set; } = null;
         public string AltName { get; set; } = null;
