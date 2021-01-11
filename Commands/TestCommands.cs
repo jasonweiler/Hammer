@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Hammer.Attributes;
 
 namespace Hammer.Commands
@@ -28,6 +29,19 @@ namespace Hammer.Commands
             string FooBar)
         {
             Console.Out.WriteLine(FooBar);
+        }
+
+        [Command(Description = "Prints strings")]
+        static void ListStrings(
+            [Parameter(Description = "Added to front of items")]
+            string prefix,
+            [Arguments]
+            IEnumerable<string> Arguments)
+        {
+            foreach (var arg in Arguments)
+            {
+                Console.Out.WriteLine($"{prefix} - ${arg}");
+            }
         }
 
         enum Severity

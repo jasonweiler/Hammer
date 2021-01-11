@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 
 namespace Hammer
@@ -37,23 +38,26 @@ namespace Hammer
                 if (cmdGroupInfo != null)
                 {
                     var cmdInfo = cmdGroupInfo.FindCommand(callArgs.Name);
-                    var parameterMapping = CreateParameterMapping(cmdInfo, callArgs);
+                    if (cmdInfo != null)
+                    {
+                        var parameterMapping = CreateParameterMapping(cmdInfo, callArgs);
 
-                    if (parameterMapping == null || parameterMapping.ErrorDiagnostics.Any())
-                    {
-                        // error!
-                        foreach(var diagnostic in parameterMapping.ErrorDiagnostics)
+                        if (parameterMapping == null || parameterMapping.ErrorDiagnostics.Any())
                         {
-                            Console.Out.WriteLine("Error!");
-                            Console.Out.WriteLine($"\t{diagnostic}");
+                            // error!
+                            foreach(var diagnostic in parameterMapping.ErrorDiagnostics)
+                            {
+                                Console.Out.WriteLine("Error!");
+                                Console.Out.WriteLine($"\t{diagnostic}");
+                            }
                         }
-                    }
-                    else
-                    {
-                        // Call our function
-                        var functionType = cmdInfo.Metadata.ReflectedType;
-                        var invokeObj = Activator.CreateInstance(functionType);
-                        cmdInfo.Metadata.Invoke(invokeObj, parameterMapping.Arguments.ToArray());
+                        else
+                        {
+                            // Call our function
+                            var functionType = cmdInfo.Metadata.ReflectedType;
+                            var invokeObj = Activator.CreateInstance(functionType);
+                            cmdInfo.Metadata.Invoke(invokeObj, parameterMapping.Arguments.ToArray());
+                        }
                     }
                 }
             }
@@ -72,46 +76,67 @@ namespace Hammer
 
         private static ParameterMapping CreateParameterMapping(CommandInfo cmdInfo, CommandCall callArgs)
         {
+            object newContainer = null;
             var result = new ParameterMapping();
-            
+           
             foreach(var param in cmdInfo.Parameters)
             {
                 // find an arg in the call or use the default
                 var paramName = param.GetEffectiveName();
 
-                var callArg = callArgs.FindCommandArgument(paramName);
-
                 object value = null;
-                if (callArg != null && callArg.HasValue)
+
+                if (param.IsArgumentList())
                 {
-                    if (param.Metadata.ParameterType.IsEnum)
+                    newContainer = param.CreateContainer();
+                    Type containerType = newContainer.GetType();
+                    
+                    var addMethod = newContainer.GetType().GetMethod("Add");
+
+                    var strConv = TypeDescriptor.GetConverter(typeof(string));
+                    var containerInnerType = containerType.GetGenericArguments()[0];
+
+                    foreach (var tgtArg in callArgs.TargetParameters)
                     {
-                        value = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                        var tgtObj = strConv.ConvertTo(tgtArg, containerInnerType);
+                        addMethod.Invoke(newContainer, new object[] {tgtObj});
                     }
-                    else
-                    {
-                        // regular argument w/ a value
-                        value = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
-                    }
-                }
-                else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
-                {
-                    // bool arg w/o a value, so existence vs. not
-                    value = true;
-                }
-                if (param.GetIsOptional())
-                {
-                    // add in the default value
-                    value = param.GetParameterDefaultValue();
+
+                    value = newContainer;
                 }
                 else
                 {
-                    // Can't map this arg
-                    result.ErrorDiagnostics.Add($"Failed to map parameter \"{paramName}\"");
-                    value = null;
+                    var callArg = callArgs.FindCommandArgument(paramName);
+
+                    if (callArg != null && callArg.HasValue)
+                    {
+                        if (param.Metadata.ParameterType.IsEnum)
+                        {
+                            value = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                        }
+                        else
+                        {
+                            // regular argument w/ a value
+                            value = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
+                        }
+                    }
+                    else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
+                    {
+                        // bool arg w/o a value, so existence vs. not
+                        value = true;
+                    }
+                    else if (param.GetIsOptional())
+                    {
+                        // add in the default value
+                        value = param.GetParameterDefaultValue();
+                    }
+                    else
+                    {
+                        // Can't map this arg
+                        result.ErrorDiagnostics.Add($"Failed to map parameter \"{paramName}\"");
+                        value = null;
+                    }
                 }
-
-
 
                 result.Arguments.Add(value);
             }

@@ -18,7 +18,6 @@ namespace Hammer
     {
         public MethodInfo Metadata { get; internal set; }
         public CommandAttribute CmdAttribute { get; internal set; }
-        // public string EffectiveName { get; internal set; }
 
         public IEnumerable<CommandParameterInfo> Parameters { get; internal set; }
     }
@@ -27,7 +26,6 @@ namespace Hammer
     {
         public ParameterInfo Metadata { get; internal set; }
         public ParameterAttribute ParamAttribute { get; internal set; }
-        // public string EffectiveName { get; internal set; }
     }
 
     public class CommandSupport
@@ -178,6 +176,39 @@ namespace Hammer
             }
 
             return GetDefaultValueForType(@this.Metadata.ParameterType);
+        }
+
+        public static object CreateContainer(this CommandParameterInfo @this)
+        {
+            object result = null;
+
+            var paramType = @this.Metadata.ParameterType;
+            if (paramType.IsGenericType)
+            {
+                var fieldType = @this.Metadata.ParameterType;
+                if (fieldType.IsGenericType)
+                {
+                    var genericArgs = fieldType.GenericTypeArguments; // there better be only one of these!
+
+                    var concreteEnumerableType = typeof(IEnumerable<>).MakeGenericType(genericArgs);
+
+                    if (concreteEnumerableType.IsAssignableFrom(fieldType))
+                    {
+                        var concreteListType = typeof(List<>).MakeGenericType(genericArgs);
+
+                        result =  Activator.CreateInstance(concreteListType);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public static bool IsArgumentList(this CommandParameterInfo @this)
+        {
+            var paramType = @this.Metadata.ParameterType;
+            return paramType.IsGenericType 
+                   && typeof(IEnumerable<>).IsAssignableFrom(paramType.GetGenericTypeDefinition());
         }
     }
 

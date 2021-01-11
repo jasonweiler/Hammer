@@ -3,11 +3,11 @@
 namespace Hammer.Attributes
 {
     [AttributeUsage(AttributeTargets.Parameter)]
-    public class ParameterAttribute : Attribute
+    public class ArgumentsAttribute : Attribute
     {
         public string Description{ get; set; } = "";
         public string AltName{ get; set; } = null;
-        public object Default{ get; set; } = null;
-        public bool Optional { get; set; } = false;
+        public int MinCount { get; set; } = 1;
+        public int MaxCount { get; set; } = Int32.MaxValue;
     }
 }
