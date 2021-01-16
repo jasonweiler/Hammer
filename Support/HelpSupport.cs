@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Hammer.Extensions;
 
-namespace Hammer
+namespace Hammer.Support
 {
     public static class HelpSupport
     {
@@ -18,7 +16,7 @@ namespace Hammer
                 groupDescriptionText = $" - {groupDescriptionText}";
             }
 
-            Console.Out.WriteLine($"{groupInfo.GetEffectiveName()}{groupDescriptionText}");
+            Log.Out($"{groupInfo.GetEffectiveName()}{groupDescriptionText}");
             var groupCommandInfos = groupInfo.EnumerateGroupCommands();
 
             foreach (var commandInfo in groupCommandInfos)
@@ -30,13 +28,12 @@ namespace Hammer
                     descriptionText = $" - {descriptionText}";
                 }
 
-                Console.Out.WriteLine($"\t{groupInfo.GetEffectiveName()}.{commandInfo.GetEffectiveName()}{descriptionText}");
+                Log.Out($"\t{groupInfo.GetEffectiveName()}.{commandInfo.GetEffectiveName()}{descriptionText}");
             }
 
-            Console.Out.WriteLine();
+            Log.Out();
         }
 
-        
         public static void OutputAllCommandGroupHelp(string cmdGroupFilterName)
         {
             var targetGroups = new List<CommandGroupInfo>();
@@ -59,9 +56,24 @@ namespace Hammer
         public static void OutputCommandHelp(string groupName, string cmdName)
         {
             var groupInfo = CommandSupport.FindCommandGroup(groupName);
+            if (groupInfo == null)
+            {
+                Log.Warning($"CommandGroup \"{groupName}\" was not found.");
+                return;
+            }
 
             var cmdInfo = groupInfo.FindCommand(cmdName);
+            if (cmdInfo == null)
+            {
+                Log.Warning($"Command \"{groupName}.{cmdName}\" was not found.");
+                return;
+            }
 
+            OutputCommandHelp(groupInfo, cmdInfo);
+        }
+
+        public static void OutputCommandHelp(CommandGroupInfo groupInfo, CommandInfo cmdInfo)
+        {
             var descText = cmdInfo.CmdAttribute.Description ?? "";
 
             if (descText.Any())
@@ -69,7 +81,7 @@ namespace Hammer
                 descText = $" - {descText}";
             }
 
-            Console.Out.WriteLine($"{groupInfo.GetEffectiveName()}.{cmdInfo.GetEffectiveName()}{descText}");
+            Log.Out($"{groupInfo.GetEffectiveName()}.{cmdInfo.GetEffectiveName()}{descText}");
 
             foreach(var paramInfo in cmdInfo.Parameters)
             {
@@ -81,7 +93,7 @@ namespace Hammer
                     paramDescText = $" - {paramDescText}";
                 }
 
-                Console.Out.WriteLine($"\t{optText} /{paramInfo.GetEffectiveName()}{paramDescText}");
+                Log.Out($"\t{optText} /{paramInfo.GetEffectiveName()}{paramDescText}");
             }
         }
     }

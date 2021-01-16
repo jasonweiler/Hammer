@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
+using Hammer.Extensions;
+using Hammer.Support;
+
 
 namespace Hammer
 {
@@ -10,6 +12,12 @@ namespace Hammer
         static void Main(string[] args)
         {
             var commandArgs = CommandLineParser.Parse(args);
+
+            var logParam = commandArgs.FindHammerParameter("log");
+            if (logParam != null)
+            {
+                AdjustLogLevel(logParam);
+            }
 
             if (commandArgs.IsEnumeratedHelpCommand())
             {
@@ -30,79 +38,108 @@ namespace Hammer
             }
         }
 
-        private static void ExecuteHammerCommand(CommandCall callArgs)
+        static void AdjustLogLevel(Argument logParam)
+        {
+            var adjustLogLevelSuccess = false;
+            if (logParam.HasValue)
+            {
+                try
+                {
+                    if (ParseEnumeratedValue(typeof(LogLevel), logParam.Value) is LogLevel newLogLevel)
+                    {
+                        Log.LogLevel = newLogLevel;
+                        adjustLogLevelSuccess = true;
+                    }
+                }
+                catch
+                {
+                    // just eat the exception
+                }
+            }
+
+            if (!adjustLogLevelSuccess)
+            {
+                Log.Out($"New log level '{logParam.Value}' is not valid. Can be one of: {", ".JoinString(typeof(LogLevel).GetEnumNames())}");
+            }
+        }
+
+        static void ExecuteHammerCommand(CommandCall callArgs)
         {
             try
             {
                 var cmdGroupInfo = CommandSupport.FindCommandGroup(callArgs.GroupName);
-                if (cmdGroupInfo != null)
+                if (cmdGroupInfo == null)
                 {
-                    var cmdInfo = cmdGroupInfo.FindCommand(callArgs.Name);
-                    if (cmdInfo != null)
-                    {
-                        var parameterMapping = CreateParameterMapping(cmdInfo, callArgs);
+                    Log.Error($"Couldn't find CommandGroup {callArgs.GroupName}");
+                    return;
+                }
 
-                        if (parameterMapping == null || parameterMapping.ErrorDiagnostics.Any())
-                        {
-                            // error!
-                            foreach(var diagnostic in parameterMapping.ErrorDiagnostics)
-                            {
-                                Console.Out.WriteLine("Error!");
-                                Console.Out.WriteLine($"\t{diagnostic}");
-                            }
-                        }
-                        else
-                        {
-                            // Call our function
-                            var functionType = cmdInfo.Metadata.ReflectedType;
-                            var invokeObj = Activator.CreateInstance(functionType);
-                            cmdInfo.Metadata.Invoke(invokeObj, parameterMapping.Arguments.ToArray());
-                        }
-                    }
+                var cmdInfo = cmdGroupInfo.FindCommand(callArgs.Name);
+                if (cmdInfo == null)
+                {
+                    Log.Error($"Couldn't find Command \"{callArgs.GetFullCommandName()}\"");
+                    return;
+                }
+                
+                var parameterMapping = CreateParameterMapping(cmdInfo, callArgs);
+                if (parameterMapping == null)
+                {
+                    HelpSupport.OutputCommandHelp(cmdGroupInfo.GetEffectiveName(), cmdInfo.GetEffectiveName());
+                    return;
+                }
+
+                // Call our function
+                var functionType = cmdInfo.Metadata.ReflectedType;
+                if (functionType != null)
+                {
+                    var invokeObj = Activator.CreateInstance(functionType);
+                    cmdInfo.Metadata.Invoke(invokeObj, parameterMapping.Arguments.ToArray());
+                }
+                else
+                {
+                    Log.Critical($"Couldn't find command invocation type for {cmdInfo.GetEffectiveName()}");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Exception(e);
             }
         }
 
         public class ParameterMapping
         {
             public List<object> Arguments { get; }= new List<object>();
-
-            public List<string> ErrorDiagnostics { get; } = new List<string>();
         }
 
-        private static ParameterMapping CreateParameterMapping(CommandInfo cmdInfo, CommandCall callArgs)
+        static ParameterMapping CreateParameterMapping(CommandInfo cmdInfo, CommandCall callArgs)
         {
-            object newContainer = null;
-            var result = new ParameterMapping();
+            var paramMapping = new ParameterMapping();
            
             foreach(var param in cmdInfo.Parameters)
             {
                 // find an arg in the call or use the default
                 var paramName = param.GetEffectiveName();
 
-                object value = null;
-
+                object parameterValue;
                 if (param.IsArgumentList())
                 {
-                    newContainer = param.CreateContainer();
-                    Type containerType = newContainer.GetType();
+                    var newContainer = param.CreateContainer();
+                    var containerType = newContainer.GetType();
                     
                     var addMethod = newContainer.GetType().GetMethod("Add");
-
-                    var strConv = TypeDescriptor.GetConverter(typeof(string));
-                    var containerInnerType = containerType.GetGenericArguments()[0];
-
-                    foreach (var tgtArg in callArgs.TargetParameters)
+                    if (addMethod != null)
                     {
-                        var tgtObj = strConv.ConvertTo(tgtArg, containerInnerType);
-                        addMethod.Invoke(newContainer, new object[] {tgtObj});
+                        var strConv = TypeDescriptor.GetConverter(typeof(string));
+                        var containerInnerType = containerType.GetGenericArguments()[0];
+
+                        foreach (var tgtArg in callArgs.TargetParameters)
+                        {
+                            var tgtObj = strConv.ConvertTo(tgtArg, containerInnerType);
+                            addMethod.Invoke(newContainer, new[] { tgtObj });
+                        }
                     }
 
-                    value = newContainer;
+                    parameterValue = newContainer;
                 }
                 else
                 {
@@ -112,83 +149,61 @@ namespace Hammer
                     {
                         if (param.Metadata.ParameterType.IsEnum)
                         {
-                            value = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                            try
+                            {
+                                parameterValue = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                            }
+                            catch(Exception ex)
+                            {
+                                Log.Exception(ex, $"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                                return null;
+                            }
+                            
+                            if (parameterValue == null)
+                            {
+                                Log.Error($"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                                return null;
+                            }
                         }
                         else
                         {
                             // regular argument w/ a value
-                            value = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
+                            parameterValue = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
                         }
                     }
                     else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
                     {
                         // bool arg w/o a value, so existence vs. not
-                        value = true;
+                        parameterValue = true;
                     }
                     else if (param.GetIsOptional())
                     {
                         // add in the default value
-                        value = param.GetParameterDefaultValue();
+                        parameterValue = param.GetParameterDefaultValue();
                     }
                     else
                     {
                         // Can't map this arg
-                        result.ErrorDiagnostics.Add($"Failed to map parameter \"{paramName}\"");
-                        value = null;
+                        Log.Error($"Failed to map parameter: '{paramName}' to Command: \"{callArgs.GetFullCommandName()}\"");
+                        return null;
                     }
                 }
 
-                result.Arguments.Add(value);
+                paramMapping.Arguments.Add(parameterValue);
             }
 
-            return result;
+            return paramMapping;
         }
 
-        private static object ParseEnumeratedValue(Type parameterType, string strValue)
+        static object ParseEnumeratedValue(Type enumType, string enumValueString)
         {
             object result = null;
-            if (parameterType.IsEnum)
+            if (enumType.IsEnum)
             {
-                try
-                {
-                    result = Enum.Parse(parameterType, strValue, true);
-                }
-                finally
-                { }
+                result = Enum.Parse(enumType, enumValueString, true);
             }
             
             return result;
-        }
-
-        private static bool ValidateCommand(CommandInfo cmdInfo, CommandCall cmdArgs)
-        {
-            var result = true;
-            // make sure we have all the required args
-            foreach(var paramInfo in cmdInfo.Parameters)
-            {
-                var name = paramInfo.GetEffectiveName();
-
-                // see if this parameter has a command line arg
-                var cmdParam = cmdArgs.FindParameter(name);
-                if (cmdParam == null && !paramInfo.GetIsOptional())
-                {
-                    // not specified, and not optional, so this is an error
-                    // ADD ERROR!
-                }
-                else //if (ValidateParameter(paramInfo, cmdParam))
-                {
-                    //CreateArgumentMapping(param)
-                    // make sure the type is correct
-
-                }
-            }
-            
-            return result;
-        }
-        
-        private static void CallCommand(CommandInfo cmdInfo, CommandCall cmdArgs)
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -200,6 +215,7 @@ namespace Hammer
             {
                 case "help":
                 case "?":
+                case "log":
                     return true;
             }
 

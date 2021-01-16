@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Hammer
 {
@@ -25,14 +23,5 @@ namespace Hammer
         // non-switch arguments go here
         public IList<string> TargetParameters { get; } = new List<string>();
 
-        public Argument FindParameter(string parameterName)
-        {
-            return CommandArguments.FirstOrDefault(param => param.Name == parameterName);
-        }
-
-        public Argument FindHammerParameter(string parameterName)
-        {
-            return HammerArguments.FirstOrDefault(param => param.Name == parameterName);
-        }
     }
 }

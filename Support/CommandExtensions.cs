@@ -3,65 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Hammer.Attributes;
+using Hammer.Support;
 
-namespace Hammer
+namespace Hammer.Extensions
 {
-    public class CommandGroupInfo
-    {
-        public Type Metadata { get; internal set; }
-        public CommandGroupAttribute Attribute { get; internal set; }
-
-        //public string EffectiveName { get; internal set; }
-    }
-
-    public class CommandInfo
-    {
-        public MethodInfo Metadata { get; internal set; }
-        public CommandAttribute CmdAttribute { get; internal set; }
-
-        public IEnumerable<CommandParameterInfo> Parameters { get; internal set; }
-    }
-
-    public class CommandParameterInfo
-    {
-        public ParameterInfo Metadata { get; internal set; }
-        public ParameterAttribute ParamAttribute { get; internal set; }
-    }
-
-    public class CommandSupport
-    {
-        public static CommandGroupInfo FindCommandGroup(string cmdGroupName)
-        {
-            return FindAllCommandGroups()
-                .FirstOrDefault(cg => cg.GetEffectiveName() == cmdGroupName);
-        }
-
-        public static IEnumerable<CommandGroupInfo> FindAllCommandGroups()
-        {
-            var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var assembly in allAssemblies)
-            {
-                var allAssemblyTypes = assembly.GetTypes();
-
-                foreach (var groupType in allAssemblyTypes)
-                {
-                    var groupAttribute = groupType.GetCustomAttribute<CommandGroupAttribute>();
-                    if (groupAttribute != null)
-                    {
-                        yield return new CommandGroupInfo
-                        {
-                            Metadata = groupType,
-                            Attribute = groupAttribute,
-                        };
-                    }
-                }
-            }
-        }
-    }
-
     public static class CommandGroupExtensions
     {
-        static int _commandsLength = "Commands".Length;
+        static readonly string CommandsSuffix = "Commands";
+        static readonly int CommandsSuffixLength = CommandsSuffix.Length;
 
         public static string GetEffectiveName(this CommandGroupInfo @this)
         {
@@ -70,9 +19,9 @@ namespace Hammer
             if (result == null)
             {
                 result = @this.Metadata.Name;
-                if (result.EndsWith("Commands"))
+                if (result.EndsWith(CommandsSuffix))
                 {
-                    result = result.Substring(0, result.Length - _commandsLength);
+                    result = result.Substring(0, result.Length - CommandsSuffixLength);
                 }
             }
 
@@ -90,7 +39,7 @@ namespace Hammer
             //  matching arguments just yet
             var allGroupCommands = @this.EnumerateGroupCommands();
 
-            return allGroupCommands.FirstOrDefault(cmd => cmd.GetEffectiveName() == cmdName);
+            return allGroupCommands.FirstOrDefault(cmd => cmd.GetEffectiveName().IEquals(cmdName));
         }
 
         public static IEnumerable<CommandInfo> EnumerateGroupCommands(this CommandGroupInfo @this)
@@ -165,17 +114,14 @@ namespace Hammer
 
         public static object GetParameterDefaultValue(this CommandParameterInfo @this)
         {
-            if (@this.ParamAttribute?.Optional ?? false)
+            if (@this.ParamAttribute?.Optional == true)
             {
                 return @this.ParamAttribute.Default;
             }
 
-            if (@this.Metadata.IsOptional)
-            {
-                return @this.Metadata.DefaultValue;
-            }
-
-            return GetDefaultValueForType(@this.Metadata.ParameterType);
+            return @this.Metadata.IsOptional 
+                ? @this.Metadata.DefaultValue 
+                : GetDefaultValueForType(@this.Metadata.ParameterType);
         }
 
         public static object CreateContainer(this CommandParameterInfo @this)
@@ -216,7 +162,22 @@ namespace Hammer
     {
         public static Argument FindCommandArgument(this CommandCall @this, string argName)
         {
-            return @this.CommandArguments.FirstOrDefault(arg => arg.Name == argName);
+            return @this.CommandArguments.FirstOrDefault(arg => arg.Name.IEquals(argName));
+        }
+
+        public static string GetFullCommandName(this CommandCall @this)
+        {
+            return $"{@this.GroupName}.{@this.Name}";
+        }
+
+        public static Argument FindParameter(this CommandCall @this, string parameterName)
+        {
+            return @this.CommandArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
+        }
+
+        public static Argument FindHammerParameter(this CommandCall @this, string parameterName)
+        {
+            return @this.HammerArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
         }
     }
 }

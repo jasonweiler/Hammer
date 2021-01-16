@@ -48,12 +48,15 @@
     <Compile Include="Attributes\CommandAttribute.cs" />
     <Compile Include="Attributes\CommandGroupAttribute.cs" />
     <Compile Include="CommandCall.cs" />
+    <Compile Include="Support\CommandExtensions.cs" />
     <Compile Include="CommandLineParser.cs" />
-    <Compile Include="CommandSupport.cs" />
-    <Compile Include="HelpSupport.cs" />
+    <Compile Include="Support\CommandSupport.cs" />
+    <Compile Include="Support\HelpSupport.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Commands\TestCommands.cs" />
+    <Compile Include="Support\Logging.cs" />
+    <Compile Include="Support\StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
