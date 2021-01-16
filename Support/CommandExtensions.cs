@@ -84,12 +84,16 @@ namespace Hammer.Extensions
 
             foreach (var paramInfo in allParameters)
             {
-                var paramAttribute = paramInfo.GetCustomAttribute<ParameterAttribute>();
+                ParameterAttributeBase attrib = paramInfo.GetCustomAttribute<ParameterAttribute>();
+                if (attrib == null)
+                {
+                    attrib = paramInfo.GetCustomAttribute<TargetsAttribute>();
+                }
 
                 yield return new CommandParameterInfo
                 {
                     Metadata = paramInfo,
-                    ParamAttribute = paramAttribute,
+                    ParamAttribute = attrib,
                 };
             }
         }
@@ -98,13 +102,25 @@ namespace Hammer.Extensions
         {
             return @this.Metadata.IsOptional || @this.ParamAttribute.Optional;
         }
+
+        public static bool IsNamedParameter(this CommandParameterInfo @this)
+        {
+            return @this.ParamAttribute is ParameterAttribute;
+        }
+
+        public static bool IsTargetsParameter(this CommandParameterInfo @this)
+        {
+            return @this.ParamAttribute is TargetsAttribute;
+        }
+
     }
 
     public static class CommandParameterExtensions
     {
         public static string GetEffectiveName(this CommandParameterInfo @this)
         {
-            return @this.ParamAttribute?.AltName ?? @this.Metadata.Name;
+            ParameterAttribute attrib = @this?.ParamAttribute as ParameterAttribute;
+            return attrib?.AltName ?? @this.Metadata.Name;
         }
 
         public static object GetDefaultValueForType(Type type)

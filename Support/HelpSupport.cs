@@ -93,7 +93,15 @@ namespace Hammer.Support
                     paramDescText = $" - {paramDescText}";
                 }
 
-                Log.Out($"\t{optText} /{paramInfo.GetEffectiveName()}{paramDescText}");
+                if (paramInfo.IsTargetsParameter())
+                {
+                    Log.Out($"\t{optText} [Targets] {paramInfo.GetEffectiveName()}{paramDescText}");
+                }
+                else
+                {
+                    Log.Out($"\t{optText} /{paramInfo.GetEffectiveName()}{paramDescText}");
+                }
+                
             }
         }
     }

@@ -24,7 +24,7 @@ namespace Hammer.Support
     public class CommandParameterInfo
     {
         public ParameterInfo Metadata { get; internal set; }
-        public ParameterAttribute ParamAttribute { get; internal set; }
+        public ParameterAttributeBase ParamAttribute { get; internal set; }
     }
 
     public class CommandSupport

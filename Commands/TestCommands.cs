@@ -35,7 +35,7 @@ namespace Hammer.Commands
         static void ListStrings(
             [Parameter(Description = "Added to front of items")]
             string prefix,
-            [Arguments]
+            [Targets]
             IEnumerable<string> Arguments)
         {
             foreach (var arg in Arguments)
