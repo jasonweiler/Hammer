@@ -12,7 +12,7 @@ namespace Hammer.Support
 
     public class Log
     {
-        public static LogLevel LogLevel { get; set; } = LogLevel.Error; 
+        public static LogLevel LogLevel { get; set; } = LogLevel.Warning; 
 
         public static void Critical(string text)
         {

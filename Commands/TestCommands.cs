@@ -4,6 +4,18 @@ using Hammer.Attributes;
 
 namespace Hammer.Commands
 {
+    [CommandGroup]
+    public class HelloCommands
+    {
+        [Command(Description = "Prints a greeting to the console")]
+        static void World(
+            [NamedParameter(Description="Optional name to print")]
+            string name="World")
+        {
+            Console.Out.WriteLine($"Hello, {name}!");
+        }
+    }
+
     [CommandGroup(Description = "Sample test commands")]
     public class TestCommands
     {
@@ -25,7 +37,7 @@ namespace Hammer.Commands
 
         [Command(Description = "Prints what you tell it", AltName = "Echo")]
         static void DerpDerp(
-            [Parameter(AltName="Text", Description = "Text to echo back to you")]
+            [NamedParameter(AltName="Text", Description = "Text to echo back to you")]
             string FooBar)
         {
             Console.Out.WriteLine(FooBar);
@@ -33,9 +45,9 @@ namespace Hammer.Commands
 
         [Command(Description = "Prints strings")]
         static void ListStrings(
-            [Parameter(Description = "Added to front of items")]
+            [NamedParameter(Description = "Added to front of items")]
             string prefix,
-            [Targets]
+            [TargetParameter()]
             IEnumerable<string> Arguments)
         {
             foreach (var arg in Arguments)
@@ -55,11 +67,11 @@ namespace Hammer.Commands
 
         [Command(Description = "Prints what you tell it with a default", AltName = "EchoDefault")]
         static void TestDefaultArgs(
-            [Parameter(AltName="Text", Description = "Text to echo back to you", Default = "This is default!")]
+            [NamedParameter(AltName="Text", Description = "Text to echo back to you", Default = "This is default!")]
             string thingthingthing,
-            [Parameter(Default = 42, Description = "Never you mind!")]
+            [NamedParameter(Default = 42, Description = "Never you mind!")]
             int Value,
-            [Parameter(Optional = true)]
+            [NamedParameter(Optional = true)]
             string optionalString,
             Severity severity = Severity.OhDearGod)
         {

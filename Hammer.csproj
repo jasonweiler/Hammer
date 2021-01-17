@@ -44,8 +44,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\ParameterAttributeBase.cs" />
-    <Compile Include="Attributes\TargetsAttribute.cs" />
-    <Compile Include="Attributes\ParameterAttribute.cs" />
+    <Compile Include="Attributes\TargetParameterAttribute.cs" />
+    <Compile Include="Attributes\NamedParameterAttribute.cs" />
     <Compile Include="Attributes\CommandAttribute.cs" />
     <Compile Include="Attributes\CommandGroupAttribute.cs" />
     <Compile Include="CommandCall.cs" />
@@ -60,6 +60,7 @@
     <Compile Include="Support\StringExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup />

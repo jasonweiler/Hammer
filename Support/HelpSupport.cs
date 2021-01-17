@@ -1,11 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Hammer.Attributes;
 using Hammer.Extensions;
 
 namespace Hammer.Support
 {
     public static class HelpSupport
     {
+        static readonly string OptionalTag = "[opt]";
+        static readonly string NonOptionalTag = new string(' ', OptionalTag.Length);
+
         public static void OutputCommandGroupHelp(CommandGroupInfo groupInfo)
         {
             // Output all entry points in this group
@@ -38,13 +42,21 @@ namespace Hammer.Support
         {
             var targetGroups = new List<CommandGroupInfo>();
 
-            if (cmdGroupFilterName == null)
+            if (cmdGroupFilterName != null)
             {
-                targetGroups.AddRange(CommandSupport.FindAllCommandGroups());
+                var commandGroup = CommandSupport.FindCommandGroup(cmdGroupFilterName);
+                if (commandGroup != null)
+                {
+                    targetGroups.Add(commandGroup);
+                }
+                else
+                {
+                    Log.Error($"Command group '{cmdGroupFilterName}' not found!");
+                }
             }
             else
             {
-                targetGroups.Add(CommandSupport.FindCommandGroup(cmdGroupFilterName));
+                targetGroups.AddRange(CommandSupport.FindAllCommandGroups());
             }
 
             foreach (var groupInfo in targetGroups.OrderBy(info => info.GetEffectiveName()))
@@ -58,14 +70,14 @@ namespace Hammer.Support
             var groupInfo = CommandSupport.FindCommandGroup(groupName);
             if (groupInfo == null)
             {
-                Log.Warning($"CommandGroup \"{groupName}\" was not found.");
+                Log.Warning($"CommandGroup '{groupName}' was not found.");
                 return;
             }
 
             var cmdInfo = groupInfo.FindCommand(cmdName);
             if (cmdInfo == null)
             {
-                Log.Warning($"Command \"{groupName}.{cmdName}\" was not found.");
+                Log.Warning($"Command '{groupName}.{cmdName}' was not found.");
                 return;
             }
 
@@ -86,22 +98,50 @@ namespace Hammer.Support
             foreach(var paramInfo in cmdInfo.Parameters)
             {
                 var paramDescText = paramInfo.ParamAttribute?.Description ?? "";
-                var optText = paramInfo.GetIsOptional() ? "[opt]" : "     " ;
+
+                var defaultValueText = "";
+                var optTagText = NonOptionalTag;
+
+                if (paramInfo.IsOptional())
+                {
+                    optTagText = OptionalTag;
+                    var defaultValue = paramInfo.GetParameterDefaultValue().ToString();
+                    defaultValueText = $" (default: \"{defaultValue}\")";
+                }
                 
                 if (paramDescText.Any())
                 {
                     paramDescText = $" - {paramDescText}";
                 }
 
-                if (paramInfo.IsTargetsParameter())
+                if (paramInfo.IsTargetParameter())
                 {
-                    Log.Out($"\t{optText} [Targets] {paramInfo.GetEffectiveName()}{paramDescText}");
+                    var rangeText = "";
+                    if (paramInfo.ParamAttribute is TargetParameterAttribute targetAttribute)
+                    {
+                        if (targetAttribute.MinCount <= 0 && targetAttribute.MaxCount < 0)
+                        {
+                            rangeText = " (any number)";
+                        }
+                        else if (targetAttribute.MinCount > 0 && targetAttribute.MaxCount < 0)
+                        {
+                            rangeText = $" (at least {targetAttribute.MinCount})";
+                        }
+                        else if (targetAttribute.MinCount <= 0 && targetAttribute.MaxCount > 0)
+                        {
+                            rangeText = $" (up to {targetAttribute.MaxCount})";
+                        }
+                        else
+                        {
+                            rangeText = $" (between {targetAttribute.MinCount}..{targetAttribute.MaxCount})";
+                        }
+                    }
+                    Log.Out($"\t{optTagText} [Targets{rangeText}] {paramDescText}");
                 }
                 else
                 {
-                    Log.Out($"\t{optText} /{paramInfo.GetEffectiveName()}{paramDescText}");
+                    Log.Out($"\t{optTagText} /{paramInfo.GetEffectiveName()}{paramDescText}{defaultValueText}");
                 }
-                
             }
         }
     }

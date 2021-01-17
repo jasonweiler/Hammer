@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reflection;
 using Hammer.Attributes;
 using Hammer.Support;
@@ -84,10 +86,10 @@ namespace Hammer.Extensions
 
             foreach (var paramInfo in allParameters)
             {
-                ParameterAttributeBase attrib = paramInfo.GetCustomAttribute<ParameterAttribute>();
+                ParameterAttributeBase attrib = paramInfo.GetCustomAttribute<NamedParameterAttribute>();
                 if (attrib == null)
                 {
-                    attrib = paramInfo.GetCustomAttribute<TargetsAttribute>();
+                    attrib = paramInfo.GetCustomAttribute<TargetParameterAttribute>();
                 }
 
                 yield return new CommandParameterInfo
@@ -97,29 +99,13 @@ namespace Hammer.Extensions
                 };
             }
         }
-
-        public static bool GetIsOptional(this CommandParameterInfo @this)
-        {
-            return @this.Metadata.IsOptional || @this.ParamAttribute.Optional;
-        }
-
-        public static bool IsNamedParameter(this CommandParameterInfo @this)
-        {
-            return @this.ParamAttribute is ParameterAttribute;
-        }
-
-        public static bool IsTargetsParameter(this CommandParameterInfo @this)
-        {
-            return @this.ParamAttribute is TargetsAttribute;
-        }
-
     }
 
     public static class CommandParameterExtensions
     {
         public static string GetEffectiveName(this CommandParameterInfo @this)
         {
-            ParameterAttribute attrib = @this?.ParamAttribute as ParameterAttribute;
+            NamedParameterAttribute attrib = @this?.ParamAttribute as NamedParameterAttribute;
             return attrib?.AltName ?? @this.Metadata.Name;
         }
 
@@ -130,14 +116,22 @@ namespace Hammer.Extensions
 
         public static object GetParameterDefaultValue(this CommandParameterInfo @this)
         {
-            if (@this.ParamAttribute?.Optional == true)
+            if (@this.ParamAttribute is NamedParameterAttribute namedParameter)
             {
-                return @this.ParamAttribute.Default;
+                if (namedParameter.Optional == true)
+                {
+                    if (namedParameter.Default != GetDefaultValueForType(@this.Metadata.ParameterType))
+                    {
+                        return namedParameter.Default;
+                    }
+                }
+
+                return @this.Metadata.IsOptional 
+                    ? @this.Metadata.DefaultValue 
+                    : GetDefaultValueForType(@this.Metadata.ParameterType);
             }
 
-            return @this.Metadata.IsOptional 
-                ? @this.Metadata.DefaultValue 
-                : GetDefaultValueForType(@this.Metadata.ParameterType);
+            return null;
         }
 
         public static object CreateContainer(this CommandParameterInfo @this)
@@ -166,17 +160,60 @@ namespace Hammer.Extensions
             return result;
         }
 
-        public static bool IsArgumentList(this CommandParameterInfo @this)
+        public static bool IsOptional(this CommandParameterInfo @this)
         {
-            var paramType = @this.Metadata.ParameterType;
-            return paramType.IsGenericType 
-                   && typeof(IEnumerable<>).IsAssignableFrom(paramType.GetGenericTypeDefinition());
+            if (@this.ParamAttribute is NamedParameterAttribute namedAttribute)
+            {
+                return namedAttribute.Optional;
+            }
+            
+            if (@this.ParamAttribute is TargetParameterAttribute targetAttribute)
+            {
+                return targetAttribute.MinCount == 0;
+            }
+
+            return @this.Metadata.IsOptional;
+        }
+
+        public static bool IsNamedParameter(this CommandParameterInfo @this)
+        {
+            return @this.ParamAttribute is NamedParameterAttribute || @this.ParamAttribute == null;
+        }
+
+        public static bool IsTargetParameter(this CommandParameterInfo @this)
+        {
+            return @this.ParamAttribute is TargetParameterAttribute;
+        }
+
+        public static bool IsTargetList(this CommandParameterInfo @this)
+        {
+            if (@this.IsTargetParameter())
+            {
+                var paramType = @this.Metadata.ParameterType;
+                return paramType.IsGenericType 
+                       && typeof(IEnumerable<>).IsAssignableFrom(paramType.GetGenericTypeDefinition());
+
+            }
+
+            return false;
+        }
+        public static bool IsTargetSingle(this CommandParameterInfo @this)
+        {
+            if (@this.IsTargetParameter())
+            {
+                var paramType = @this.Metadata.ParameterType;
+                return !paramType.IsGenericType 
+                       || !typeof(IEnumerable<>).IsAssignableFrom(paramType.GetGenericTypeDefinition());
+
+            }
+
+            return false;
         }
     }
 
     public static class CommandCallExtensions
     {
-        public static Argument FindCommandArgument(this CommandCall @this, string argName)
+        public static NamedArgument FindCommandArgument(this CommandCall @this, string argName)
         {
             return @this.CommandArguments.FirstOrDefault(arg => arg.Name.IEquals(argName));
         }
@@ -186,12 +223,12 @@ namespace Hammer.Extensions
             return $"{@this.GroupName}.{@this.Name}";
         }
 
-        public static Argument FindParameter(this CommandCall @this, string parameterName)
+        public static NamedArgument FindParameter(this CommandCall @this, string parameterName)
         {
             return @this.CommandArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
         }
 
-        public static Argument FindHammerParameter(this CommandCall @this, string parameterName)
+        public static NamedArgument FindHammerParameter(this CommandCall @this, string parameterName)
         {
             return @this.HammerArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
         }

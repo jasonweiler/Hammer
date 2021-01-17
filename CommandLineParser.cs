@@ -12,36 +12,40 @@ namespace Hammer
 
             var result = new CommandCall();
 
-            if (args.Length > 0)
+            foreach(var arg in args)
             {
-                var hiveCmd = args[0];
-
-                var cmdParts = hiveCmd.Split(new [] {'.' }, 2);
-
-                result.GroupName = cmdParts[0];
-                if (cmdParts.Length == 2)
+                if (arg.StartsWith("-") || arg.StartsWith("/"))
                 {
-                    result.Name = cmdParts[1];
-                }
-
-                for (int i = 1; i < args.Length; ++i)
-                {
-                    if (args[i].StartsWith("-") || args[i].StartsWith("/"))
+                    // is a switch
+                    var switchArg = ParseSwitch(arg);
+                    if (switchArg.IsHammerSwitch())
                     {
-                        // is switch
-                        var switchArg = ParseSwitch(args[i]);
-                        if (switchArg.IsHammerSwitch())
+                        result.HammerArguments.Add(switchArg);
+                    }
+                    else
+                    {
+                        // TODO: don't allow command arguments until after we have a command
+                        result.CommandArguments.Add(switchArg);
+                    }
+                }
+                else
+                {
+                    if (result.GroupName == null)
+                    {
+                        var hiveCmd = arg;
+
+                        var cmdParts = hiveCmd.Split(new [] {'.' }, 2);
+
+                        result.GroupName = cmdParts[0];
+                        if (cmdParts.Length == 2)
                         {
-                            result.HammerArguments.Add(switchArg);
-                        }
-                        else
-                        {
-                            result.CommandArguments.Add(switchArg);
+                            result.Name = cmdParts[1];
                         }
                     }
                     else
                     {
-                        result.TargetParameters.Add(args[i]);
+                        // unnamed target parameter
+                        result.TargetParameters.Add(new TargetArgument(arg));
                     }
                 }
             }
@@ -49,9 +53,9 @@ namespace Hammer
             return result;
         }
 
-        public static Argument ParseSwitch(string argText)
+        public static NamedArgument ParseSwitch(string argText)
         {
-            var result = new Argument();
+            var result = new NamedArgument();
 
             // 1. chop off the switch char
             argText = argText.Substring(1);

@@ -2,11 +2,23 @@
 
 namespace Hammer
 {
-    public class Argument
+    public class NamedArgument
     {
         public string Name { get; set; }
         public string Value { get; set; }
         public bool HasValue { get; set; }
+        public bool WasMapped { get; set; } = false;
+    }
+
+    public class TargetArgument
+    {
+        public TargetArgument(string value)
+        {
+            Value = value;
+        }
+
+        public string Value { get; set; }
+        public bool WasMapped { get; set; } = false;
     }
 
     public class CommandCall
@@ -15,13 +27,13 @@ namespace Hammer
         public string Name {get; set; }
 
         // Arguments that are for the framework go here (eg. -help)
-        public IList<Argument> HammerArguments { get; } = new List<Argument>();
+        public IList<NamedArgument> HammerArguments { get; } = new List<NamedArgument>();
 
         // all command-specific args go here
-        public IList<Argument> CommandArguments { get; } = new List<Argument>();
+        public IList<NamedArgument> CommandArguments { get; } = new List<NamedArgument>();
 
         // non-switch arguments go here
-        public IList<string> TargetParameters { get; } = new List<string>();
+        public IList<TargetArgument> TargetParameters { get; } = new List<TargetArgument>();
 
     }
 }

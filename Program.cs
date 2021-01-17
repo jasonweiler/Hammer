@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
+using System.Xml.Schema;
+using Hammer.Attributes;
 using Hammer.Extensions;
 using Hammer.Support;
 
@@ -9,6 +12,11 @@ namespace Hammer
 {
     class Program
     {
+        public class ParameterMapping
+        {
+            public List<object> Arguments { get; }= new List<object>();
+        }
+
         static void Main(string[] args)
         {
             var commandArgs = CommandLineParser.Parse(args);
@@ -38,7 +46,7 @@ namespace Hammer
             }
         }
 
-        static void AdjustLogLevel(Argument logParam)
+        static void AdjustLogLevel(NamedArgument logParam)
         {
             var adjustLogLevelSuccess = false;
             if (logParam.HasValue)
@@ -88,6 +96,9 @@ namespace Hammer
                     return;
                 }
 
+                // We have a valid mapping, so output some warnings for unmapped parameters
+                LogUnusedArguments(callArgs);
+
                 // Call our function
                 var functionType = cmdInfo.Metadata.ReflectedType;
                 if (functionType != null)
@@ -106,9 +117,173 @@ namespace Hammer
             }
         }
 
-        public class ParameterMapping
+        static void LogUnusedArguments(CommandCall callArgs)
         {
-            public List<object> Arguments { get; }= new List<object>();
+            foreach(var arg in callArgs.CommandArguments.Where(arg => !arg.WasMapped))
+            {
+                if (arg.HasValue)
+                {
+                    Log.Warning($"Unused argument: /{arg.Name}={arg.Value}");
+                }
+                else
+                {
+                    Log.Warning($"Unused switch: /{arg.Name}");
+                }
+            }
+
+            foreach(var target in callArgs.TargetParameters.Where(target => !target.WasMapped))
+            {
+                Log.Warning($"Unused target: {target.Value}");
+            }
+        }
+
+        static bool CreateListTargetParameterValue(CommandParameterInfo param, CommandCall callArgs, out object parameterValue)
+        {
+            parameterValue = null;
+            if (!(param.ParamAttribute is TargetParameterAttribute targetAttribute)) 
+            {
+                // Should never happen - can't have a target parameter without an attribute
+                return false;
+            }
+
+            if (callArgs.TargetParameters.Count < targetAttribute.MinCount)
+            {
+                Log.Error($"Found {callArgs.TargetParameters.Count} target arguments. Expected: At least {targetAttribute.MinCount}.");
+                return false;
+            }
+
+            if (callArgs.TargetParameters.Count > targetAttribute.MaxCount)
+            {
+                Log.Error($"Found {callArgs.TargetParameters.Count} target arguments. Expected: No more than {targetAttribute.MaxCount}.");
+                return false;
+            }
+
+            // the target is a generic container, so pile all the target arguments into it
+            var newContainer = param.CreateContainer();
+            var containerType = newContainer.GetType();
+                        
+            var addMethod = newContainer.GetType().GetMethod("Add");
+            if (addMethod != null)
+            {
+                var strConv = TypeDescriptor.GetConverter(typeof(string));
+                var containerInnerType = containerType.GetGenericArguments()[0];
+
+                foreach (var targetParam in callArgs.TargetParameters)
+                {
+                    var tgtObj = strConv.ConvertTo(targetParam.Value, containerInnerType);
+                    addMethod.Invoke(newContainer, new[] { tgtObj });
+
+                    targetParam.WasMapped = true;
+                }
+            }
+
+            parameterValue = newContainer;
+
+            return parameterValue != null;
+        }
+
+
+        static bool CreateSingleTargetParameterValue(CommandParameterInfo param, CommandCall callArgs, out object parameterValue)
+        {
+            parameterValue = null;
+            // the target parameter is just one value
+            if (callArgs.TargetParameters.Count > 1 && !param.IsOptional())
+            {
+                Log.Warning($"Found {callArgs.TargetParameters.Count} target arguments. Expected: 1 (extra will be ignored)");
+            }
+
+            if (callArgs.TargetParameters.Any())
+            {
+                var targetParam = callArgs.TargetParameters.First();
+                parameterValue = Convert.ChangeType(targetParam, param.Metadata.ParameterType);
+                targetParam.WasMapped = true;
+            }
+            else if (param.IsOptional())
+            {
+                parameterValue = param.GetParameterDefaultValue();
+            }
+            else
+            {
+                Log.Error($"No target arguments found. Expected: 1");
+            }
+
+            return parameterValue != null;
+        }
+
+        static bool CreateTargetParameterValue(CommandParameterInfo param, CommandCall callArgs, out object parameterValue)
+        {
+            parameterValue = null;
+
+            if (param.IsTargetList())
+            {
+                return CreateListTargetParameterValue(param, callArgs, out parameterValue);
+            }
+            
+            if (param.IsTargetSingle())
+            {
+                return CreateSingleTargetParameterValue(param, callArgs, out parameterValue);
+            }
+
+            return false;
+        }
+
+        static bool CreateNamedParameterValue(CommandParameterInfo param, CommandCall callArgs, out object parameterValue)
+        {
+            parameterValue = null;
+
+            // find an arg in the call or use the default
+            var paramName = param.GetEffectiveName();
+
+            var callArg = callArgs.FindCommandArgument(paramName);
+
+            if (callArg != null && callArg.HasValue)
+            {
+                if (param.Metadata.ParameterType.IsEnum)
+                {
+                    try
+                    {
+                        parameterValue = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
+                        callArg.WasMapped = true;
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Exception(ex, $"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                        
+                        return false;
+                    }
+                    
+                    if (parameterValue == null)
+                    {
+                        Log.Error($"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                        return false;
+                    }
+                }
+                else
+                {
+                    // regular argument with a value
+                    parameterValue = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
+                    callArg.WasMapped = true;
+                }
+            }
+            else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
+            {
+                // bool arg w/o a value, so simple existence means true
+                parameterValue = true;
+                callArg.WasMapped = true;
+            }
+            else if (param.IsOptional())
+            {
+                // add in the default value
+                parameterValue = param.GetParameterDefaultValue();
+            }
+            else
+            {
+                // Can't map this arg
+                Log.Error($"Failed to map parameter: '{paramName}' to Command: \"{callArgs.GetFullCommandName()}\"");
+                return false;
+            }
+
+            return true;
         }
 
         static ParameterMapping CreateParameterMapping(CommandInfo cmdInfo, CommandCall callArgs)
@@ -117,78 +292,28 @@ namespace Hammer
            
             foreach(var param in cmdInfo.Parameters)
             {
-                // find an arg in the call or use the default
-                var paramName = param.GetEffectiveName();
-
                 object parameterValue;
-                if (param.IsArgumentList())
+                if (param.IsTargetParameter())
                 {
-                    var newContainer = param.CreateContainer();
-                    var containerType = newContainer.GetType();
-                    
-                    var addMethod = newContainer.GetType().GetMethod("Add");
-                    if (addMethod != null)
+                    if (!CreateTargetParameterValue(param, callArgs, out parameterValue))
                     {
-                        var strConv = TypeDescriptor.GetConverter(typeof(string));
-                        var containerInnerType = containerType.GetGenericArguments()[0];
-
-                        foreach (var tgtArg in callArgs.TargetParameters)
-                        {
-                            var tgtObj = strConv.ConvertTo(tgtArg, containerInnerType);
-                            addMethod.Invoke(newContainer, new[] { tgtObj });
-                        }
-                    }
-
-                    parameterValue = newContainer;
-                }
-                else
-                {
-                    var callArg = callArgs.FindCommandArgument(paramName);
-
-                    if (callArg != null && callArg.HasValue)
-                    {
-                        if (param.Metadata.ParameterType.IsEnum)
-                        {
-                            try
-                            {
-                                parameterValue = ParseEnumeratedValue(param.Metadata.ParameterType, callArg.Value);
-                            }
-                            catch(Exception ex)
-                            {
-                                Log.Exception(ex, $"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
-                                return null;
-                            }
-                            
-                            if (parameterValue == null)
-                            {
-                                Log.Error($"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
-                                return null;
-                            }
-                        }
-                        else
-                        {
-                            // regular argument w/ a value
-                            parameterValue = Convert.ChangeType(callArg.Value, param.Metadata.ParameterType);
-                        }
-                    }
-                    else if (callArg != null && param.Metadata.ParameterType == typeof(bool))
-                    {
-                        // bool arg w/o a value, so existence vs. not
-                        parameterValue = true;
-                    }
-                    else if (param.GetIsOptional())
-                    {
-                        // add in the default value
-                        parameterValue = param.GetParameterDefaultValue();
-                    }
-                    else
-                    {
-                        // Can't map this arg
-                        Log.Error($"Failed to map parameter: '{paramName}' to Command: \"{callArgs.GetFullCommandName()}\"");
                         return null;
                     }
                 }
-
+                else if (param.IsNamedParameter())
+                {
+                    if (!CreateNamedParameterValue(param, callArgs, out parameterValue))
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+                    // really shouldn't happen since the absence of a parameter attribute is considered named
+                    Log.Error($"Unresolved parameter {param.GetEffectiveName()} could not be mapped");
+                    return null;
+                }
+                
                 paramMapping.Arguments.Add(parameterValue);
             }
 
@@ -209,7 +334,7 @@ namespace Hammer
 
     public static class HammerArgExtensions
     {
-        public static bool IsHammerSwitch(this Argument @this)
+        public static bool IsHammerSwitch(this NamedArgument @this)
         {
             switch (@this.Name)
             {
