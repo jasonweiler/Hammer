@@ -1,5 +1,5 @@
 # Hammer
-A generic command line tool to use as an extension point for small productivity tools
+A generic command line tool to use as an extension point for small productivity utilities
 
 ### Usage
 * `Hammer.exe` - List all commands and command groups
@@ -14,7 +14,7 @@ All command parameters fall into three distinct forms.
 
 1. `-name=value` or `/name=value` <br/>Named arguments are always a name-value pair separated by an equals.
 
-1. `target` <br/>Unnamed arguments are considered command-targets.
+1. `target` <br/>Unnamed arguments after the comand name are considered command-targets.
 
 Switches and arguments are mapped onto function arguments of the same name while targets are collected into a single array of values. Command line order is not maintained, so positional arguments should use name-value switches.
 
@@ -42,7 +42,7 @@ Next we can add a command to `Hello` like so:
 <pre>
 <b>[Command(Description="Prints a greeting to the console")]</b>
 static void World(
-    <b>[NamedParameter(Description="Optional name to print", Optional=true)]</b>
+    <b>[NamedParameter(Description="Optional name", Optional=true)]</b>
     string name="World")
 {
     Console.Out.WriteLine($"Hello, {name}!");
