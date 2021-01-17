@@ -1,6 +1,9 @@
 # Hammer
 A generic command line tool to use as an extension point for small productivity utilities
 
+### License
+This code is in the public domain.
+
 ### Usage
 * `Hammer.exe` - List all commands and command groups
 
@@ -19,7 +22,7 @@ All command parameters fall into three distinct forms.
 Switches and arguments are mapped onto function arguments of the same name while targets are collected into a single array of values. Command line order is not maintained, so positional arguments should use name-value switches.
 
 ### But why?!
-This tool is a reimplementation of one I had at a previous game studio job. If you've worked in the games industry - or perhaps any technical, content-heavy job, there are many situations where you don't need a new graphical tool. You just need a targeted command line that will fix your problem. That carries some baggage with it, however. First, discoverablility is usually a problem. There often isn't a good way to find that a command line tool exists at all, so users are unlikely to find them. Second, not all users are so comfortable with command line tools, so adoption is always a problem. Third, writing good command line tools that are easy to use and difficult to misuse is a lot harder than it might appear. A lot of time is spent on argument edge-cases and base-line functionality.
+This tool is a reimplementation of one I had at a previous game studio job. (i.e. has zero code in common) If you've worked in the games industry - or perhaps any technical, content-heavy job, there are many situations where you don't need a new graphical tool. You just need a targeted command line that will fix your problem. That carries some baggage with it, however. First, discoverablility is usually a problem. There often isn't a good way to find that a command line tool exists at all, so users are unlikely to find them. Second, not all users are so comfortable with command line tools, so adoption is always a problem. Third, writing good command line tools that are easy to use and difficult to misuse is a lot harder than it might appear. A lot of time is spent on argument edge-cases and base-line functionality.
 
 Hammer tries to address all of these issues. For users, it creates a single environment with multiple entry points so they know where to start. There are facilities to discover functionaltiy and get basic help. At a basic level, commands always follow the same calling convention to help with familiarity.
 
@@ -81,3 +84,4 @@ As with the others, `[TargetParamter]` has a few optional attribute fields:
 * `Description` - A string used by the help system that describes this parameter's purpose.
 * `MinCount` - Defines a minimum number of required targets (default: 0)
 * `MaxCount` - Defines a maximum number of allowed targets (default: unlimited)
+
