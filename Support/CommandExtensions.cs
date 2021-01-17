@@ -125,13 +125,11 @@ namespace Hammer.Extensions
                         return namedParameter.Default;
                     }
                 }
-
-                return @this.Metadata.IsOptional 
-                    ? @this.Metadata.DefaultValue 
-                    : GetDefaultValueForType(@this.Metadata.ParameterType);
             }
 
-            return null;
+            return @this.Metadata.IsOptional 
+                ? @this.Metadata.DefaultValue 
+                : GetDefaultValueForType(@this.Metadata.ParameterType);
         }
 
         public static object CreateContainer(this CommandParameterInfo @this)
@@ -162,9 +160,11 @@ namespace Hammer.Extensions
 
         public static bool IsOptional(this CommandParameterInfo @this)
         {
+            var hasDefaultArgument = @this.Metadata.IsOptional;
+
             if (@this.ParamAttribute is NamedParameterAttribute namedAttribute)
             {
-                return namedAttribute.Optional;
+                return namedAttribute.Optional || hasDefaultArgument;
             }
             
             if (@this.ParamAttribute is TargetParameterAttribute targetAttribute)
@@ -172,7 +172,7 @@ namespace Hammer.Extensions
                 return targetAttribute.MinCount == 0;
             }
 
-            return @this.Metadata.IsOptional;
+            return hasDefaultArgument;
         }
 
         public static bool IsNamedParameter(this CommandParameterInfo @this)

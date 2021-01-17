@@ -5,7 +5,7 @@ namespace Hammer.Attributes
     [AttributeUsage(AttributeTargets.Method)]
     public class CommandAttribute : Attribute
     {
-        public string Description { get; set; }
-        public string AltName { get; set; }
+        public string Description { get; set; } = null;
+        public string AltName { get; set; } = null;
     }
 }

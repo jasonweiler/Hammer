@@ -26,21 +26,21 @@ namespace Hammer.Commands
         }
     }
 
-    [CommandGroup(Description = "Sermple commands", AltName = "Sermple")]
+    [CommandGroup(Description = "Simple commands", AltName = "Simple")]
     public class TestCommands2
     {
         [Command(Description = "Prints \"Fare thee well\" to the console", AltName = "Sayounara")]
-        public static void Derp()
+        public static void SoLong()
         {
             Console.Out.WriteLine("Hasta la Vista, Baby-san!");
         }
 
         [Command(Description = "Prints what you tell it", AltName = "Echo")]
-        static void DerpDerp(
+        static void ThanksForAllTheFish(
             [NamedParameter(AltName="Text", Description = "Text to echo back to you")]
-            string FooBar)
+            string fooBar)
         {
-            Console.Out.WriteLine(FooBar);
+            Console.Out.WriteLine(fooBar);
         }
 
         [Command(Description = "Prints strings")]
@@ -70,12 +70,12 @@ namespace Hammer.Commands
             [NamedParameter(AltName="Text", Description = "Text to echo back to you", Default = "This is default!")]
             string thingthingthing,
             [NamedParameter(Default = 42, Description = "Never you mind!")]
-            int Value,
+            int value,
             [NamedParameter(Optional = true)]
             string optionalString,
             Severity severity = Severity.OhDearGod)
         {
-            Console.Out.WriteLine(thingthingthing);
+            Console.Out.WriteLine($"{severity}! {thingthingthing}");
         }
     }
 }

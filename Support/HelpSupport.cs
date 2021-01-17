@@ -86,32 +86,46 @@ namespace Hammer.Support
 
         public static void OutputCommandHelp(CommandGroupInfo groupInfo, CommandInfo cmdInfo)
         {
-            var descText = cmdInfo.CmdAttribute.Description ?? "";
+            var descText = cmdInfo.CmdAttribute.Description;
 
-            if (descText.Any())
+            if (descText != null)
             {
-                descText = $" - {descText}";
+                descText = $"- {descText}";
             }
 
-            Log.Out($"{groupInfo.GetEffectiveName()}.{cmdInfo.GetEffectiveName()}{descText}");
+            Log.Out($"{groupInfo.GetEffectiveName()}.{cmdInfo.GetEffectiveName()} {descText ?? ""}");
 
             foreach(var paramInfo in cmdInfo.Parameters)
             {
-                var paramDescText = paramInfo.ParamAttribute?.Description ?? "";
-
-                var defaultValueText = "";
                 var optTagText = NonOptionalTag;
+                string defaultValueText = null;
 
                 if (paramInfo.IsOptional())
                 {
                     optTagText = OptionalTag;
-                    var defaultValue = paramInfo.GetParameterDefaultValue().ToString();
-                    defaultValueText = $" (default: \"{defaultValue}\")";
+                    var defaultValue = paramInfo.GetParameterDefaultValue();
+                    if (paramInfo.Metadata.ParameterType == typeof(string))
+                    {
+                        defaultValueText = $"(default: \"{defaultValue}\")";
+                    }
+                    else if (defaultValue != null)
+                    {
+                        defaultValueText = $"(default: {defaultValue})";
+                    }
                 }
-                
-                if (paramDescText.Any())
+
+                var valueOptions = CreateArgumentOptions(paramInfo);
+                string valueOptionsText = null;
+                if (valueOptions?.Any() == true)
                 {
-                    paramDescText = $" - {paramDescText}";
+                    valueOptionsText = $"(one of: {", ".JoinString(valueOptions)})";
+                }
+
+                var paramDescText = paramInfo.ParamAttribute?.Description;
+
+                if (paramDescText != null)
+                {
+                    paramDescText = $"- {paramDescText}";
                 }
 
                 if (paramInfo.IsTargetParameter())
@@ -140,9 +154,31 @@ namespace Hammer.Support
                 }
                 else
                 {
-                    Log.Out($"\t{optTagText} /{paramInfo.GetEffectiveName()}{paramDescText}{defaultValueText}");
+                    Log.Out($"\t{optTagText} /{paramInfo.GetEffectiveName()} {paramDescText ?? ""}\t{defaultValueText ?? ""}");
+                    if (valueOptionsText != null)
+                    {
+                        Log.Out($"\t\t{valueOptionsText}");
+                    }
+
                 }
             }
+        }
+
+        static string CreateArgumentTypeText(CommandParameterInfo paramInfo)
+        {
+            var paramType = paramInfo?.Metadata?.ParameterType;
+            return paramType?.Name ?? "";
+        }
+
+        static IEnumerable<string> CreateArgumentOptions(CommandParameterInfo paramInfo)
+        {
+            var paramType = paramInfo?.Metadata?.ParameterType;
+            if (paramType != null && paramType.IsEnum)
+            {
+                return paramType.GetEnumNames();
+            }
+
+            return null;
         }
     }
 

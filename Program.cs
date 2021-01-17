@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Xml.Schema;
 using Hammer.Attributes;
 using Hammer.Extensions;
 using Hammer.Support;
@@ -247,7 +246,8 @@ namespace Hammer
                     }
                     catch(Exception ex)
                     {
-                        Log.Exception(ex, $"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                        Log.Error($"Couldn't parse enumerated value argument: \"{param.Metadata.ParameterType.Name}.{callArg.Value}\"");
+                        Log.Info(ex.ToString());
                         
                         return false;
                     }

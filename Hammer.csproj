@@ -52,6 +52,7 @@
     <Compile Include="Support\CommandExtensions.cs" />
     <Compile Include="CommandLineParser.cs" />
     <Compile Include="Support\CommandSupport.cs" />
+    <Compile Include="Support\EnumerableExtensions.cs" />
     <Compile Include="Support\HelpSupport.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
