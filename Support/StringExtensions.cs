@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Hammer.Extensions
+namespace Maul.Extensions
 {
     public static class StringExtensions
     {

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Hammer.Attributes;
+using Maul.Attributes;
 
-namespace Hammer.Commands
+namespace Maul.Commands
 {
     [CommandGroup]
     public class HelloCommands

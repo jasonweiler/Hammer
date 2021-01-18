@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hammer
+namespace Maul
 {
     public class CommandLineParser
     {
@@ -18,9 +18,9 @@ namespace Hammer
                 {
                     // is a switch
                     var switchArg = ParseSwitch(arg);
-                    if (switchArg.IsHammerSwitch())
+                    if (switchArg.IsMaulSwitch())
                     {
-                        result.HammerArguments.Add(switchArg);
+                        result.MaulArguments.Add(switchArg);
                     }
                     else
                     {

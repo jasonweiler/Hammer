@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Hammer.Attributes;
-using Hammer.Extensions;
+using Maul.Extensions;
+using Maul.Attributes;
 
-namespace Hammer.Support
+namespace Maul.Support
 {
     public static class HelpSupport
     {

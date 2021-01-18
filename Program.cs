@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Hammer.Attributes;
-using Hammer.Extensions;
-using Hammer.Support;
+using Maul.Extensions;
+using Maul.Attributes;
+using Maul.Support;
 
 
-namespace Hammer
+namespace Maul
 {
     class Program
     {
@@ -20,7 +20,7 @@ namespace Hammer
         {
             var commandArgs = CommandLineParser.Parse(args);
 
-            var logParam = commandArgs.FindHammerParameter("log");
+            var logParam = commandArgs.FindMaulParameter("log");
             if (logParam != null)
             {
                 AdjustLogLevel(logParam);
@@ -33,14 +33,14 @@ namespace Hammer
             }
             else 
             {
-                var helpParam = commandArgs.FindHammerParameter("Help") ?? commandArgs.FindHammerParameter("?");
+                var helpParam = commandArgs.FindMaulParameter("Help") ?? commandArgs.FindMaulParameter("?");
                 if (helpParam != null)
                 {
                     HelpSupport.OutputCommandHelp(commandArgs.GroupName, commandArgs.Name);
                 }
                 else
                 {
-                    ExecuteHammerCommand(commandArgs);
+                    ExecuteCommand(commandArgs);
                 }
             }
         }
@@ -70,7 +70,7 @@ namespace Hammer
             }
         }
 
-        static void ExecuteHammerCommand(CommandCall callArgs)
+        static void ExecuteCommand(CommandCall callArgs)
         {
             try
             {
@@ -332,9 +332,9 @@ namespace Hammer
         }
     }
 
-    public static class HammerArgExtensions
+    public static class MaulArgExtensions
     {
-        public static bool IsHammerSwitch(this NamedArgument @this)
+        public static bool IsMaulSwitch(this NamedArgument @this)
         {
             switch (@this.Name)
             {

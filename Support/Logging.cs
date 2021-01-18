@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hammer.Support
+namespace Maul.Support
 {
     public enum LogLevel
     {

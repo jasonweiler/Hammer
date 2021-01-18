@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hammer.Attributes
+namespace Maul.Attributes
 {
     public abstract class ParameterAttributeBase : Attribute
     {

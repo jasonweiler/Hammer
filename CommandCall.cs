@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Hammer
+namespace Maul
 {
     public class NamedArgument
     {
@@ -27,7 +27,7 @@ namespace Hammer
         public string Name {get; set; }
 
         // Arguments that are for the framework go here (eg. -help)
-        public IList<NamedArgument> HammerArguments { get; } = new List<NamedArgument>();
+        public IList<NamedArgument> MaulArguments { get; } = new List<NamedArgument>();
 
         // all command-specific args go here
         public IList<NamedArgument> CommandArguments { get; } = new List<NamedArgument>();

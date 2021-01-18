@@ -1,15 +1,15 @@
-# Hammer
+# Maul
 A generic command line tool to use as an extension point for small productivity utilities
 
 ### License
 This code is in the public domain.
 
 ### Usage
-* `Hammer.exe` - List all commands and command groups
+* `Maul.exe` - List all commands and command groups
 
-* `Hammer.exe`  `group` - List all commands within the group
+* `Maul.exe`  `group` - List all commands within the group
 
-* `Hammer.exe`  `group.command` [**-named-parameters**] [**targets**]- Call this command with zero or more parameters
+* `Maul.exe`  `group.command` [**-named-parameters**] [**targets**]- Call this command with zero or more parameters
 
 ### Parameters
 All command parameters fall into three distinct forms. 
@@ -24,9 +24,9 @@ Switches and arguments are mapped onto function arguments of the same name while
 ### But why?!
 This tool is a reimplementation of one I had at a previous game studio job. (i.e. has zero code in common) If you've worked in the games industry - or perhaps any technical, content-heavy job, there are many situations where you don't need a new graphical tool. You just need a targeted command line that will fix your problem. That carries some baggage with it, however. First, discoverablility is usually a problem. There often isn't a good way to find that a command line tool exists at all, so users are unlikely to find them. Second, not all users are so comfortable with command line tools, so adoption is always a problem. Third, writing good command line tools that are easy to use and difficult to misuse is a lot harder than it might appear. A lot of time is spent on argument edge-cases and base-line functionality.
 
-Hammer tries to address all of these issues. For users, it creates a single environment with multiple entry points so they know where to start. There are facilities to discover functionaltiy and get basic help. At a basic level, commands always follow the same calling convention to help with familiarity.
+Maul tries to address all of these issues. For users, it creates a single environment with multiple entry points so they know where to start. There are facilities to discover functionaltiy and get basic help. At a basic level, commands always follow the same calling convention to help with familiarity.
 
-For programmers, Hammer provides a single extensible project where argument plumbing is a simple matter of some attribute markup and doing so automatically documents the functionality. Writing one-off fixes or lesser-used tools becomes trivial.
+For programmers, Maul provides a single extensible project where argument plumbing is a simple matter of some attribute markup and doing so automatically documents the functionality. Writing one-off fixes or lesser-used tools becomes trivial.
 
 ### Implementation
 Commands are separated into command-groups. These groupings are arbitrary, but they're intended to represent some larger body of functionality. For example, Content fixes, Database-access, Cache maintenance. Adding a command group is as simple as adding a new class like this:
@@ -54,7 +54,7 @@ static void World(
 
 This will define a new entry point called `World` that takes one optional argument called `name`. Calling this from the command line looks like this:
 <pre>
-> Hammer.exe Hello.World /name=Earthlings
+> Maul.exe Hello.World /name=Earthlings
 <b>Hello, Earthlings!</b>
 </pre>
 

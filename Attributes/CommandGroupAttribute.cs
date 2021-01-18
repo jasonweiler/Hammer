@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hammer.Attributes
+namespace Maul.Attributes
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class CommandGroupAttribute : Attribute

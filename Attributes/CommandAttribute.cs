@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hammer.Attributes
+namespace Maul.Attributes
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class CommandAttribute : Attribute

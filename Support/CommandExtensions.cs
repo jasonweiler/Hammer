@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
-using Hammer.Attributes;
-using Hammer.Support;
+using Maul.Attributes;
+using Maul.Support;
 
-namespace Hammer.Extensions
+namespace Maul.Extensions
 {
     public static class CommandGroupExtensions
     {
@@ -228,9 +228,9 @@ namespace Hammer.Extensions
             return @this.CommandArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
         }
 
-        public static NamedArgument FindHammerParameter(this CommandCall @this, string parameterName)
+        public static NamedArgument FindMaulParameter(this CommandCall @this, string parameterName)
         {
-            return @this.HammerArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
+            return @this.MaulArguments.FirstOrDefault(param => param.Name.IEquals(parameterName));
         }
     }
 }

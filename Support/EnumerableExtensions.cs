@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Hammer.Support
+namespace Maul.Support
 {
     public static class EnumerableExtensions
     {

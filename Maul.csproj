@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{FC048D4B-3402-4410-AF30-20C4F48D9D19}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Hammer</RootNamespace>
-    <AssemblyName>Hammer</AssemblyName>
+    <RootNamespace>Maul</RootNamespace>
+    <AssemblyName>Maul</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
